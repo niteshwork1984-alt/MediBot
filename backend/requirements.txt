@@ -1,0 +1,5 @@
+# Official Groq SDK used by GroqLLMClient.
+groq
+
+# Loads local development settings from backend/.env.
+python-dotenv
