@@ -66,6 +66,7 @@ def _configure_logging() -> None:
         level=os.getenv("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 # This function assembles concrete ingestion dependencies and prints a short result summary.
