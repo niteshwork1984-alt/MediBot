@@ -1,8 +1,12 @@
 """Qdrant collection creation, incremental-state checks, and document point writes."""
 
+import logging
 from typing import Any
 
 from app.ingestion.models import PreparedChunk
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 # This class owns the write-only ingestion operations against one Qdrant collection.
@@ -35,6 +39,7 @@ class QdrantDocumentIndex:
         """Create the collection and payload indexes needed by ingestion and later RBAC retrieval."""
         models = self._models()
         if not self._client.collection_exists(self.collection_name):
+            LOGGER.info("Creating Qdrant collection collection=%s dense_vector_size=%d", self.collection_name, dense_vector_size)
             self._client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config={
@@ -57,6 +62,9 @@ class QdrantDocumentIndex:
                     field_schema=models.PayloadSchemaType.KEYWORD,
                     wait=True,
                 )
+            LOGGER.info("Created Qdrant collection and payload indexes collection=%s", self.collection_name)
+        else:
+            LOGGER.info("Using existing Qdrant collection collection=%s", self.collection_name)
         from langchain_qdrant import QdrantVectorStore, RetrievalMode
         self._vector_store = QdrantVectorStore(
             client=self._client, collection_name=self.collection_name, embedding=embedding,
@@ -113,12 +121,20 @@ class QdrantDocumentIndex:
             ),
             exact=True,
         )
+        LOGGER.debug(
+            "Checked document index state document_key=%s expected_chunks=%d stored_chunks=%d index_version=%s",
+            document_key,
+            expected_chunk_count,
+            result.count,
+            index_version,
+        )
         return result.count == expected_chunk_count
 
     # This method removes stale chunks for one source document before the replacement chunks are written.
     def delete_document(self, document_key: str) -> None:
         """Delete every existing point for one source file across old hashes and index versions."""
         models = self._models()
+        LOGGER.info("Deleting existing Qdrant points document_key=%s collection=%s", document_key, self.collection_name)
         self._client.delete(
             collection_name=self.collection_name,
             points_selector=models.FilterSelector(
@@ -134,6 +150,7 @@ class QdrantDocumentIndex:
             return
         if self._vector_store is None:
             raise RuntimeError("Collection must be initialized before LangChain ingestion.")
+        LOGGER.info("Writing hybrid Qdrant points collection=%s document_key=%s chunks=%d", self.collection_name, chunks[0].document_key, len(chunks))
         from langchain_core.documents import Document
         documents = [Document(page_content=chunk.text, metadata={
             "source_document": chunk.source_document, "document_key": chunk.document_key,
@@ -142,3 +159,4 @@ class QdrantDocumentIndex:
             "document_hash": chunk.document_hash, "index_version": chunk.index_version,
         }) for chunk in chunks]
         self._vector_store.add_documents(documents, ids=[chunk.id for chunk in chunks])
+        LOGGER.info("Wrote hybrid Qdrant points collection=%s document_key=%s chunks=%d", self.collection_name, chunks[0].document_key, len(chunks))

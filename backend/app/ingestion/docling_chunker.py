@@ -1,6 +1,8 @@
 """Docling parsing and heading-aware HybridChunker integration."""
 
 import hashlib
+import logging
+import time
 import uuid
 from pathlib import Path
 
@@ -10,6 +12,9 @@ from app.ingestion.collection_policy import (
 )
 from app.ingestion.interfaces import ChunkingService
 from app.ingestion.models import PreparedChunk
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 # This function creates a content fingerprint used to detect a changed source file.
@@ -92,13 +97,17 @@ class DoclingHybridChunker(ChunkingService):
         collection = collection_for_source(source_root, source_path)
         document_hash = calculate_document_hash(source_path)
         document_key = source_path.resolve().relative_to(source_root.resolve()).as_posix()
+        chunking_started_at = time.monotonic()
+        LOGGER.info("Converting document document_key=%s collection=%s", document_key, collection)
         converted_document = self._converter.convert(source_path).document
         fallback_title = source_path.stem.replace("_", " ").title()
         prepared_chunks: list[PreparedChunk] = []
+        empty_chunks = 0
 
         for position, chunk in enumerate(self._chunker.chunk(dl_doc=converted_document)):
             text = self._chunker.contextualize(chunk).strip()
             if not text:
+                empty_chunks += 1
                 continue
             prepared_chunks.append(
                 PreparedChunk(
@@ -120,4 +129,12 @@ class DoclingHybridChunker(ChunkingService):
                     index_version=index_version,
                 )
             )
+        LOGGER.info(
+            "Chunked document document_key=%s collection=%s chunks=%d empty_chunks=%d duration_ms=%d",
+            document_key,
+            collection,
+            len(prepared_chunks),
+            empty_chunks,
+            (time.monotonic() - chunking_started_at) * 1000,
+        )
         return prepared_chunks

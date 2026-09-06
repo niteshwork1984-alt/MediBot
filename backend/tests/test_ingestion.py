@@ -161,6 +161,27 @@ class DocumentIngestionServiceTests(unittest.TestCase):
         self.assertEqual(index.deleted_document_keys, ["billing/guide.md"])
         self.assertEqual(len(index.upserted_batches), 1)
 
+    # This test verifies useful document lifecycle logs exclude the sensitive chunk text.
+    def test_indexed_document_log_excludes_chunk_text(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            source_root = Path(temporary_directory)
+            source_file = source_root / "billing" / "guide.md"
+            source_file.parent.mkdir()
+            source_file.write_text("content")
+            chunk = self._prepared_chunk("guide.md", "billing/guide.md")
+            service = DocumentIngestionService(
+                chunker=FakeChunker({"guide.md": [chunk]}),
+                embedder=FakeEmbedder(),
+                index=FakeIndex(),
+            )
+
+            with self.assertLogs("app.ingestion.ingestion_service", level="INFO") as captured:
+                service.ingest(source_root, "v1")
+
+        log_output = "\n".join(captured.output)
+        self.assertIn("Indexed document document_key=billing/guide.md chunks=1", log_output)
+        self.assertNotIn(chunk.text, log_output)
+
     # This test verifies a current document skips the expensive embedding and write phases.
     def test_skips_current_document(self) -> None:
         with TemporaryDirectory() as temporary_directory:

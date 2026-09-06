@@ -1,7 +1,13 @@
 """LangChain embedding adapters backed by local FastEmbed models."""
 
+import logging
+import time
+
 from app.ingestion.interfaces import EmbeddingService
 from langchain_core.embeddings import Embeddings
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 # This class creates local dense and sparse embeddings without sending document text to an LLM provider.
@@ -27,17 +33,32 @@ class FastEmbedEmbeddingService(EmbeddingService, Embeddings):
         self.sparse_model_name = sparse_model_name
         self._dense_model = TextEmbedding(model_name=dense_model_name, lazy_load=True)
         self._sparse_model = FastEmbedSparse(model_name=sparse_model_name)
+        LOGGER.info(
+            "Configured local embedding models dense_model=%s sparse_model=%s",
+            dense_model_name,
+            sparse_model_name,
+        )
 
     # This method finds the dense-vector dimension required when creating a Qdrant collection.
     def dense_vector_size(self) -> int:
         """Return the configured dense embedding size using one local probe embedding."""
         probe_vector = next(self._dense_model.embed(["MediBot embedding dimension probe"]))
-        return len(probe_vector)
+        dimension = len(probe_vector)
+        LOGGER.info("Resolved dense embedding dimension dense_model=%s dimension=%d", self.dense_model_name, dimension)
+        return dimension
 
     # This LangChain interface method embeds a batch of document texts as dense vectors.
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """Return local dense embeddings for LangChain document ingestion."""
-        return [[float(value) for value in vector] for vector in self._dense_model.embed(texts)]
+        embedding_started_at = time.monotonic()
+        vectors = [[float(value) for value in vector] for vector in self._dense_model.embed(texts)]
+        LOGGER.info(
+            "Generated dense embeddings dense_model=%s document_count=%d duration_ms=%d",
+            self.dense_model_name,
+            len(texts),
+            (time.monotonic() - embedding_started_at) * 1000,
+        )
+        return vectors
 
     # This LangChain interface method embeds one query text as a dense vector.
     def embed_query(self, text: str) -> list[float]:

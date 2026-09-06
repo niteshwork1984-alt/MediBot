@@ -1,6 +1,7 @@
 """Explicit terminal command for Docling-to-Qdrant ingestion; not an API endpoint."""
 
 import argparse
+import logging
 import os
 from pathlib import Path
 
@@ -8,6 +9,9 @@ from app.core.config import INDEX_VERSION, QDRANT_COLLECTION, QDRANT_URL
 from app.ingestion.embedding_service import FastEmbedEmbeddingService
 from app.ingestion.ingestion_service import DocumentIngestionService
 from app.ingestion.qdrant_index import QdrantDocumentIndex
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 # This function makes Python network clients trust certificates configured in the operating system.
@@ -55,11 +59,28 @@ def _parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+# This function configures concise terminal logs for this explicit command only.
+def _configure_logging() -> None:
+    """Configure timestamped operational logs without logging document contents or secrets."""
+    logging.basicConfig(
+        level=os.getenv("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+    )
+
+
 # This function assembles concrete ingestion dependencies and prints a short result summary.
 def main() -> None:
     """Run one explicit incremental or forced Docling-to-Qdrant ingestion command."""
+    _configure_logging()
     _use_system_trust_store()
     arguments = _parse_arguments()
+    LOGGER.info(
+        "Starting ingestion source_root=%s collection=%s index_version=%s force_reindex=%s",
+        arguments.source_root,
+        arguments.collection,
+        arguments.index_version,
+        arguments.force_reindex,
+    )
     embedder = FastEmbedEmbeddingService()
     index = QdrantDocumentIndex(arguments.qdrant_url, arguments.collection)
     service = DocumentIngestionService(embedder=embedder, index=index)
@@ -67,6 +88,12 @@ def main() -> None:
         source_root=arguments.source_root,
         index_version=arguments.index_version,
         force_reindex=arguments.force_reindex,
+    )
+    LOGGER.info(
+        "Ingestion completed indexed_documents=%d skipped_documents=%d indexed_chunks=%d",
+        summary.indexed_documents,
+        summary.skipped_documents,
+        summary.indexed_chunks,
     )
     print(
         "Ingestion complete: "
