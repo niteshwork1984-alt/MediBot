@@ -11,7 +11,8 @@
 2. Route questions with a simple, transparent keyword strategy first.
 3. Keep the routing interface replaceable; after the assignment, evaluate semantic and LLM-based routing.
 4. Implement SQL RAG only after the SQL-generation, validation, and result-explanation flow has been discussed.
-5. Add FastAPI endpoints only after the backend concepts are approved.
+5. Implement document ingestion as a separate explicit command before retrieval; use Docling, LangChain, and Qdrant hybrid storage.
+6. Add FastAPI endpoints only after the backend concepts are approved.
 
 ## Architecture boundaries
 
@@ -19,6 +20,8 @@
 | --- | --- |
 | `backend/app/core/` | Configuration and authorization policy |
 | `backend/app/services/` | Routing and SQL-RAG orchestration; `llm/` holds the shared LLM interface/factory and provider adapters |
+| `backend/app/ingestion/` | Docling chunks, LangChain documents/embeddings, and Qdrant index-state operations; never expose ingestion through FastAPI |
+| `backend/scripts/` | Explicit batch commands, including document ingestion |
 | `backend/app/repositories/` | Read-only SQLite access; never call an LLM |
 | `backend/app/api/` | Future FastAPI endpoints; do not add until requested |
 | `backend/tests/` | Standard-library `unittest` coverage |
@@ -39,6 +42,7 @@
 - Select the LLM provider with `REQUIRED_LLM_MODEL_GROUP`; create provider clients only through `create_llm_client()`.
 - Keep provider model IDs in the matching provider-prefixed `.env` variables.
 - Do not make a real LLM API call without explicit user approval after key rotation.
+- Use LangChain `Document` and `QdrantVectorStore` in `HYBRID` mode for document-vector writes; direct `qdrant-client` is limited to collection setup and incremental-state checks.
 
 ## Validation
 

@@ -6,3 +6,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+
+# Local Qdrant collection data is persistent on the host but must not be committed.
+data/qdrant_storage/*
+!data/qdrant_storage/.gitkeep

@@ -15,6 +15,15 @@ DATABASE_PATH = BACKEND_DIRECTORY / "data" / "mediassist.db"
 # This loads local development settings only for values absent from the startup environment.
 load_dotenv(BACKEND_DIRECTORY / ".env", override=False)
 
+# This default URL points to the local Qdrant container started through docker-compose.
+QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+
+# This default collection name identifies the first document index contract version.
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "medibot_documents_v1")
+
+# This version changes when chunking or embedding settings require a complete new index.
+INDEX_VERSION = os.getenv("INDEX_VERSION", "v1")
+
 
 # This exception explains a missing or invalid environment configuration value.
 class ConfigurationError(ValueError):

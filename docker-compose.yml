@@ -1,0 +1,14 @@
+# This Compose file starts the local Qdrant vector database required by Hybrid RAG.
+services:
+  # This service runs Qdrant's REST API, dashboard, and gRPC API locally.
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      # This port exposes Qdrant's REST API and local dashboard to the backend and browser.
+      - "6333:6333"
+      # This port exposes Qdrant's gRPC API for clients that choose gRPC later.
+      - "6334:6334"
+    volumes:
+      # This bind mount persists collections on the host even when the container is recreated.
+      - ./data/qdrant_storage:/qdrant/storage
+    restart: unless-stopped
