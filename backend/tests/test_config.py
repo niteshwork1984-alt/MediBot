@@ -7,6 +7,7 @@ from app.core.config import (
     ConfigurationError,
     LLMModelGroup,
     LLMModelPurpose,
+    load_hybrid_retrieval_configuration,
     load_llm_configuration,
 )
 
@@ -65,3 +66,23 @@ class LLMConfigurationTests(unittest.TestCase):
             configuration = load_llm_configuration()
 
         self.assertEqual(configuration.sql_model, "startup-sql-model")
+
+
+# This test class verifies the configuration limits applied to Hybrid RAG retrieval.
+class HybridRetrievalConfigurationTests(unittest.TestCase):
+    # This test verifies defaults make a small retrieval request while retaining a larger safety ceiling.
+    def test_loads_default_retrieval_limits(self) -> None:
+        configuration = load_hybrid_retrieval_configuration({})
+
+        self.assertEqual(configuration.default_limit, 5)
+        self.assertEqual(configuration.max_limit, 20)
+
+    # This test verifies a default above the safety maximum fails during startup configuration.
+    def test_rejects_default_limit_above_maximum(self) -> None:
+        environment = {
+            "HYBRID_RAG_DEFAULT_LIMIT": "6",
+            "HYBRID_RAG_MAX_LIMIT": "5",
+        }
+
+        with self.assertRaisesRegex(ConfigurationError, "cannot exceed"):
+            load_hybrid_retrieval_configuration(environment)

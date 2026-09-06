@@ -78,6 +78,56 @@ def _required_setting(name: str, environment: Mapping[str, str]) -> str:
     return value
 
 
+# This helper reads a positive integer setting while rejecting malformed or unsafe values at startup.
+def _positive_integer_setting(
+    name: str,
+    default: int,
+    environment: Mapping[str, str],
+) -> int:
+    """Return a positive integer environment setting or raise a clear configuration error."""
+    raw_value = environment.get(name, str(default)).strip()
+    try:
+        value = int(raw_value)
+    except ValueError as error:
+        raise ConfigurationError(f"{name} must be a positive integer.") from error
+    if value < 1:
+        raise ConfigurationError(f"{name} must be a positive integer.")
+    return value
+
+
+# This immutable object groups the retrieval result limits selected at application startup.
+@dataclass(frozen=True)
+class HybridRetrievalConfiguration:
+    """Configured default and maximum count of chunks returned by Hybrid RAG."""
+
+    default_limit: int
+    max_limit: int
+
+
+# This function reads valid retrieval limits and prevents a default above the configured maximum.
+def load_hybrid_retrieval_configuration(
+    environment: Mapping[str, str] | None = None,
+) -> HybridRetrievalConfiguration:
+    """Load Hybrid RAG result limits from startup environment settings."""
+    source = os.environ if environment is None else environment
+    default_limit = _positive_integer_setting("HYBRID_RAG_DEFAULT_LIMIT", 5, source)
+    max_limit = _positive_integer_setting("HYBRID_RAG_MAX_LIMIT", 20, source)
+    if default_limit > max_limit:
+        raise ConfigurationError(
+            "HYBRID_RAG_DEFAULT_LIMIT cannot exceed HYBRID_RAG_MAX_LIMIT."
+        )
+    return HybridRetrievalConfiguration(
+        default_limit=default_limit,
+        max_limit=max_limit,
+    )
+
+
+# This resolves retrieval limits once so every terminal and future API caller uses the same contract.
+HYBRID_RETRIEVAL_CONFIGURATION = load_hybrid_retrieval_configuration()
+HYBRID_RAG_DEFAULT_LIMIT = HYBRID_RETRIEVAL_CONFIGURATION.default_limit
+HYBRID_RAG_MAX_LIMIT = HYBRID_RETRIEVAL_CONFIGURATION.max_limit
+
+
 # This function resolves the selected provider and the matching provider-prefixed models.
 def load_llm_configuration(
     environment: Mapping[str, str] | None = None,
