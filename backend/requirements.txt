@@ -3,3 +3,15 @@ groq
 
 # Loads local development settings from backend/.env.
 python-dotenv
+
+# Parses PDFs and Markdown with document structure and HybridChunker support.
+docling
+
+# Connects to Qdrant and includes local FastEmbed dense and sparse embedding models.
+qdrant-client[fastembed]>=1.14.2
+
+# LangChain core document abstraction and the official Qdrant hybrid vector-store integration.
+langchain-qdrant
+
+# Uses the operating system trust store when local model downloads require enterprise certificates.
+truststore
