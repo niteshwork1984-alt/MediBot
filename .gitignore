@@ -1,6 +1,9 @@
 # Local credentials
 backend/.env
 
+# Local authentication database contains provisioned demo users and password hashes.
+backend/data/medibot_auth.db
+
 # Python build and test artifacts
 __pycache__/
 *.py[cod]
