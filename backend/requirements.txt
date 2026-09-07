@@ -15,3 +15,9 @@ langchain-qdrant
 
 # Uses the operating system trust store when local model downloads require enterprise certificates.
 truststore
+
+# Hashes passwords for demo-user authentication without storing plaintext passwords.
+bcrypt
+
+# Signs and verifies role-tagged JWT session tokens.
+PyJWT
