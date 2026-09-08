@@ -15,6 +15,7 @@ The project is being built in learning stages. The implemented commands below wo
 | Dense + BM25 hybrid retrieval with Qdrant RBAC filter and RRF fusion | Implemented |
 | Demo-user bootstrap, bcrypt password hashes, JWT session-token foundation | Implemented |
 | Cross-encoder reranking: retrieve top 10 and retain top 3 | Implemented |
+| Hybrid RAG answer: reranked context, LLM answer, trusted citations | Implemented |
 | FastAPI endpoints (`/login`, `/chat`, `/collections/{role}`, `/health`) | Pending |
 | Next.js frontend | Pending |
 
@@ -166,6 +167,18 @@ The future `/login` API will return the signed JWT to the frontend. The JWT role
 ## 6. Test Hybrid RAG retrieval
 
 This command performs dense semantic search and sparse BM25 keyword search in Qdrant. Qdrant applies the role filter before candidates are returned, then combines the two rankings with Reciprocal Rank Fusion (RRF).
+
+## 7. Test a complete Hybrid RAG answer
+
+This command retrieves ten role-authorized candidates, cross-encoder-reranks the best three, and then makes one intentional request to the configured answer model. The citations printed after the answer come from Qdrant metadata, not from the model response.
+
+```bash
+cd backend
+.venv/bin/python -m scripts.ask_hybrid_rag \
+  "What are MRSA contact precautions?" \
+  --role nurse \
+  --allow-llm-call
+```
 
 ```bash
 cd backend
