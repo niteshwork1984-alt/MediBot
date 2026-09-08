@@ -12,7 +12,7 @@
 3. Keep the routing interface replaceable; after the assignment, evaluate semantic and LLM-based routing.
 4. Implement SQL RAG only after the SQL-generation, validation, and result-explanation flow has been discussed.
 5. Implement document ingestion as a separate explicit command before retrieval; use Docling, LangChain, and Qdrant hybrid storage.
-6. Retrieve broad role-authorized Hybrid RAG candidates, then cross-encoder-rerank a smaller LLM context.
+6. Retrieve broad role-authorized Hybrid RAG candidates, cross-encoder-rerank a smaller LLM context, then generate an answer with trusted metadata-derived citations.
 7. Implement user identity, role verification, and signed session tokens before FastAPI endpoints.
 8. Add FastAPI endpoints only after the backend concepts are approved.
 
