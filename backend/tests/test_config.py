@@ -76,6 +76,8 @@ class HybridRetrievalConfigurationTests(unittest.TestCase):
 
         self.assertEqual(configuration.default_limit, 5)
         self.assertEqual(configuration.max_limit, 20)
+        self.assertEqual(configuration.candidate_limit, 10)
+        self.assertEqual(configuration.rerank_limit, 3)
 
     # This test verifies a default above the safety maximum fails during startup configuration.
     def test_rejects_default_limit_above_maximum(self) -> None:
@@ -85,4 +87,14 @@ class HybridRetrievalConfigurationTests(unittest.TestCase):
         }
 
         with self.assertRaisesRegex(ConfigurationError, "cannot exceed"):
+            load_hybrid_retrieval_configuration(environment)
+
+    # This test verifies reranking cannot request more chunks than the candidate retrieval provides.
+    def test_rejects_rerank_limit_above_candidate_limit(self) -> None:
+        environment = {
+            "HYBRID_RAG_CANDIDATE_LIMIT": "3",
+            "HYBRID_RAG_RERANK_LIMIT": "4",
+        }
+
+        with self.assertRaisesRegex(ConfigurationError, "RERANK_LIMIT cannot exceed"):
             load_hybrid_retrieval_configuration(environment)
