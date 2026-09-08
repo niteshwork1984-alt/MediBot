@@ -17,7 +17,7 @@ The project is being built in learning stages. The backend is available through 
 | Cross-encoder reranking: retrieve top 10 and retain top 3 | Implemented |
 | Hybrid RAG answer: reranked context, LLM answer, trusted citations | Implemented |
 | FastAPI endpoints (`POST /login`, JWT-protected `POST /chat`) | Implemented |
-| Next.js frontend | Pending |
+| React + Vite frontend | Implemented |
 
 ## Architecture
 
@@ -86,6 +86,7 @@ INDEX_VERSION=v1
 # Authentication/session settings. JWT_SECRET_KEY must be at least 32 bytes.
 JWT_SECRET_KEY=<a-private-random-value-of-at-least-32-bytes>
 MEDIBOT_DEMO_PASSWORD=<your-chosen-demo-password>
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 # Hybrid retrieval guardrails.
 HYBRID_RAG_DEFAULT_LIMIT=5

@@ -15,6 +15,7 @@
 6. Retrieve broad role-authorized Hybrid RAG candidates, cross-encoder-rerank a smaller LLM context, then generate an answer with trusted metadata-derived citations.
 7. Implement user identity, role verification, and signed session tokens before FastAPI endpoints.
 8. Implement and test `POST /login` and JWT-protected `POST /chat`; keep the role out of the chat request body.
+9. Build a React + Vite frontend that calls only those APIs, stores the JWT for the browser session, and renders trusted answer sources.
 
 ## Architecture boundaries
 
@@ -26,6 +27,7 @@
 | `backend/scripts/` | Explicit batch commands, including document ingestion |
 | `backend/app/repositories/` | SQLite data access; `mediassist_repository.py` remains read-only and user authentication access is separate; never call an LLM |
 | `backend/app/api/` | FastAPI request validation, HTTP authentication boundary, and endpoint wiring only; business orchestration stays in `services/` |
+| `frontend/` | React + Vite browser UI; sends login credentials only to `/login` and questions only to `/chat` |
 | `backend/tests/` | Standard-library `unittest` coverage |
 
 ## Routing decision
@@ -49,6 +51,7 @@
 - Hybrid RAG must apply the Qdrant role filter before retrieving broad candidates, then pass only cross-encoder-reranked chunks to an LLM.
 - Do not implement public signup for this internal assignment; seed only the five demo users through an explicit command, and read an authenticated role from the signed token in future FastAPI endpoints.
 - `/login` is the only endpoint that accepts credentials. `/chat` accepts a question only and derives the role from the verified bearer token.
+- Restrict browser CORS origins through `CORS_ALLOWED_ORIGINS`; the development default permits only local Vite origins.
 
 ## Validation
 

@@ -151,3 +151,18 @@ class MediBotApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(chat_service.calls, [])
+
+    # This test verifies the local React development origin may send authenticated API requests.
+    def test_allows_local_vite_origin_through_cors(self) -> None:
+        client, _, _ = self._client()
+
+        response = client.options(
+            "/chat",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")

@@ -5,6 +5,7 @@ from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.api.schemas import ChatRequest, ChatResponse, ChatSourceResponse, LoginRequest, LoginResponse
@@ -17,6 +18,16 @@ from app.services.chat_service import ChatService, create_medibot_chat_service
 
 
 BEARER_SCHEME = HTTPBearer(auto_error=False)
+
+
+# This function reads the browser origins allowed to call the API and removes empty configuration entries.
+def _cors_allowed_origins() -> list[str]:
+    """Return explicitly configured CORS origins or the local Vite development defaults."""
+    configured_origins = os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    )
+    return [origin.strip() for origin in configured_origins.split(",") if origin.strip()]
 
 
 # This function reads the signing secret only while composing the production HTTP application.
@@ -84,6 +95,13 @@ def create_application(
     )
     selected_chat_service = chat_service or create_medibot_chat_service()
     application = FastAPI(title="MediBot API", version="1.0.0")
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_allowed_origins(),
+        allow_credentials=True,
+        allow_methods=["POST"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
     authenticated_user = _authenticated_user_dependency(selected_token_service)
 
     # This endpoint verifies provisioned-user credentials and returns a signed bearer token.
