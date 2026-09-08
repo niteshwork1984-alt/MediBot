@@ -21,3 +21,7 @@ bcrypt
 
 # Signs and verifies role-tagged JWT session tokens.
 PyJWT
+
+# HTTP API framework and development server for the login and chat endpoints.
+fastapi
+uvicorn[standard]
