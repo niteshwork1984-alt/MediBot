@@ -98,10 +98,12 @@ def _positive_integer_setting(
 # This immutable object groups the retrieval result limits selected at application startup.
 @dataclass(frozen=True)
 class HybridRetrievalConfiguration:
-    """Configured default and maximum count of chunks returned by Hybrid RAG."""
+    """Configured candidate and reranking limits used by Hybrid RAG."""
 
     default_limit: int
     max_limit: int
+    candidate_limit: int
+    rerank_limit: int
 
 
 # This function reads valid retrieval limits and prevents a default above the configured maximum.
@@ -112,13 +114,25 @@ def load_hybrid_retrieval_configuration(
     source = os.environ if environment is None else environment
     default_limit = _positive_integer_setting("HYBRID_RAG_DEFAULT_LIMIT", 5, source)
     max_limit = _positive_integer_setting("HYBRID_RAG_MAX_LIMIT", 20, source)
+    candidate_limit = _positive_integer_setting("HYBRID_RAG_CANDIDATE_LIMIT", 10, source)
+    rerank_limit = _positive_integer_setting("HYBRID_RAG_RERANK_LIMIT", 3, source)
     if default_limit > max_limit:
         raise ConfigurationError(
             "HYBRID_RAG_DEFAULT_LIMIT cannot exceed HYBRID_RAG_MAX_LIMIT."
         )
+    if candidate_limit > max_limit:
+        raise ConfigurationError(
+            "HYBRID_RAG_CANDIDATE_LIMIT cannot exceed HYBRID_RAG_MAX_LIMIT."
+        )
+    if rerank_limit > candidate_limit:
+        raise ConfigurationError(
+            "HYBRID_RAG_RERANK_LIMIT cannot exceed HYBRID_RAG_CANDIDATE_LIMIT."
+        )
     return HybridRetrievalConfiguration(
         default_limit=default_limit,
         max_limit=max_limit,
+        candidate_limit=candidate_limit,
+        rerank_limit=rerank_limit,
     )
 
 
@@ -126,6 +140,11 @@ def load_hybrid_retrieval_configuration(
 HYBRID_RETRIEVAL_CONFIGURATION = load_hybrid_retrieval_configuration()
 HYBRID_RAG_DEFAULT_LIMIT = HYBRID_RETRIEVAL_CONFIGURATION.default_limit
 HYBRID_RAG_MAX_LIMIT = HYBRID_RETRIEVAL_CONFIGURATION.max_limit
+HYBRID_RAG_CANDIDATE_LIMIT = HYBRID_RETRIEVAL_CONFIGURATION.candidate_limit
+HYBRID_RAG_RERANK_LIMIT = HYBRID_RETRIEVAL_CONFIGURATION.rerank_limit
+
+# This model evaluates the question and a candidate chunk together for local cross-encoder reranking.
+RERANKER_MODEL = os.getenv("RERANKER_MODEL", "Xenova/ms-marco-MiniLM-L-6-v2")
 
 
 # This function resolves the selected provider and the matching provider-prefixed models.

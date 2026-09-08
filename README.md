@@ -14,7 +14,7 @@ The project is being built in learning stages. The implemented commands below wo
 | Docling hierarchical chunking and Qdrant ingestion | Implemented |
 | Dense + BM25 hybrid retrieval with Qdrant RBAC filter and RRF fusion | Implemented |
 | Demo-user bootstrap, bcrypt password hashes, JWT session-token foundation | Implemented |
-| Cross-encoder reranking | Pending |
+| Cross-encoder reranking: retrieve top 10 and retain top 3 | Implemented |
 | FastAPI endpoints (`/login`, `/chat`, `/collections/{role}`, `/health`) | Pending |
 | Next.js frontend | Pending |
 
@@ -30,7 +30,7 @@ flowchart TD
     F --> G[Qdrant RBAC filter]
     G --> H[Dense + BM25 search]
     H --> I[RRF fusion]
-    I --> J[Cross-encoder reranking - pending]
+    I --> J[Cross-encoder reranking]
     J --> K[LLM cited answer - pending]
 ```
 
@@ -89,6 +89,12 @@ MEDIBOT_DEMO_PASSWORD=<your-chosen-demo-password>
 # Hybrid retrieval guardrails.
 HYBRID_RAG_DEFAULT_LIMIT=5
 HYBRID_RAG_MAX_LIMIT=20
+HYBRID_RAG_CANDIDATE_LIMIT=10
+HYBRID_RAG_RERANK_LIMIT=3
+
+# Optional but recommended for first-time local cross-encoder model downloads.
+HF_ACCESS_TOKEN=<your-hugging-face-access-token>
+RERANKER_MODEL=Xenova/ms-marco-MiniLM-L-6-v2
 ```
 
 Do not commit `.env`, API keys, JWT secrets, passwords, or session tokens.
@@ -172,7 +178,23 @@ cd backend
 
 The `--role` argument is a terminal learning aid. In the future `/chat` API, the role will come only from a verified JWT.
 
-## 7. Test SQL RAG
+## 7. Test cross-encoder reranking
+
+This command retrieves 10 role-authorized Qdrant candidates, then uses a local cross-encoder to score each full `(question, chunk)` pair and retain the best 3. The first run downloads the configured reranker model into FastEmbed's local cache.
+
+```bash
+cd backend
+
+.venv/bin/python -m scripts.rerank_hybrid_results \
+  "What are MRSA contact precautions?" \
+  --role nurse \
+  --candidate-limit 10 \
+  --rerank-limit 3
+```
+
+`reranker_score` is a relevance ranking value: higher is better, and it can be negative. It is not a percentage or answer-confidence score.
+
+## 8. Test SQL RAG
 
 SQL RAG is limited to `billing_executive` and `admin`. It accepts only validated `SELECT` queries against `claims` and `maintenance_tickets`.
 
