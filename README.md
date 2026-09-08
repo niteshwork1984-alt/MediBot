@@ -2,7 +2,7 @@
 
 MediBot is a learning project for role-based Retrieval-Augmented Generation (RAG) in a healthcare setting. It combines a local SQLite database, Docling document ingestion, Qdrant hybrid retrieval, and role-based access control.
 
-The project is being built in learning stages. The implemented commands below work from the terminal; the FastAPI and Next.js layers are intentionally still pending.
+The project is being built in learning stages. The backend is available through FastAPI; the Next.js frontend is still pending.
 
 ## Current implementation status
 
@@ -16,14 +16,14 @@ The project is being built in learning stages. The implemented commands below wo
 | Demo-user bootstrap, bcrypt password hashes, JWT session-token foundation | Implemented |
 | Cross-encoder reranking: retrieve top 10 and retain top 3 | Implemented |
 | Hybrid RAG answer: reranked context, LLM answer, trusted citations | Implemented |
-| FastAPI endpoints (`/login`, `/chat`, `/collections/{role}`, `/health`) | Pending |
+| FastAPI endpoints (`POST /login`, JWT-protected `POST /chat`) | Implemented |
 | Next.js frontend | Pending |
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A[Demo user login - future API] --> B[Verify bcrypt password]
+    A[Demo user login] --> B[Verify bcrypt password]
     B --> C[JWT contains authenticated role]
     C --> D{Question router}
     D -->|Analytical question and authorized role| E[SQL RAG]
@@ -32,7 +32,7 @@ flowchart TD
     G --> H[Dense + BM25 search]
     H --> I[RRF fusion]
     I --> J[Cross-encoder reranking]
-    J --> K[LLM cited answer - pending]
+    J --> K[LLM cited answer]
 ```
 
 ## Prerequisites
@@ -162,7 +162,7 @@ Test a login without displaying the token:
 .venv/bin/python -m scripts.login_demo_user --username nurse.priya
 ```
 
-The future `/login` API will return the signed JWT to the frontend. The JWT role, not a client-supplied role, will be used by future protected endpoints.
+`POST /login` returns the signed JWT to the frontend. The JWT role, not a client-supplied role, is used by protected endpoints.
 
 ## 6. Test Hybrid RAG retrieval
 
@@ -189,7 +189,32 @@ cd backend
   --limit 3
 ```
 
-The `--role` argument is a terminal learning aid. In the future `/chat` API, the role will come only from a verified JWT.
+The `--role` argument is a terminal learning aid. `POST /chat` derives the role only from a verified JWT.
+
+## 8. Run the FastAPI backend
+
+Bootstrap demo users first, then start Qdrant and the API in separate terminals:
+
+```bash
+cd backend
+.venv/bin/python -m uvicorn app.main:app --reload
+```
+
+Open `http://127.0.0.1:8000/docs` to inspect and test the generated API documentation.
+
+`POST /login` body:
+
+```json
+{"username": "nurse.priya", "password": "<MEDIBOT_DEMO_PASSWORD value>"}
+```
+
+The response contains `access_token`. Send it in the `Authorization: Bearer <access_token>` header for `POST /chat`. The chat body contains only a question:
+
+```json
+{"question": "What are MRSA contact precautions?"}
+```
+
+The API extracts the role from the verified token, selects SQL RAG or Hybrid RAG, and returns the answer plus trusted Hybrid RAG sources when applicable.
 
 ## 7. Test cross-encoder reranking
 
@@ -207,7 +232,7 @@ cd backend
 
 `reranker_score` is a relevance ranking value: higher is better, and it can be negative. It is not a percentage or answer-confidence score.
 
-## 8. Test SQL RAG
+## 9. Test SQL RAG
 
 SQL RAG is limited to `billing_executive` and `admin`. It accepts only validated `SELECT` queries against `claims` and `maintenance_tickets`.
 
